@@ -16,6 +16,8 @@ typedef struct Team{
     struct Team* next;
 }Team;
 
+//task 1 liste
+
 void print(Team *head, FILE *out) {
     while (head != NULL) {
         fprintf(out, "%s\n", head->name);
@@ -32,12 +34,14 @@ void addAtBeginning(Team** head, Team v) {
 
 int cea_mai_apropiata_put_2(int numar_echipe) {
     int putere=1;
+    //am folosit <= pentru a ajunge la cea mai aproape putere a lui 2
     while(putere * 2 <= numar_echipe) {
         putere *= 2;
     }
     return putere;
 }
 
+//parcurge lista pentru a gasi echipa cu cel mai mic punctaj.
 Team* echipa_de_sters(Team *head) {
     if(head==NULL) return NULL;
     float min_punct=head->medie_puncte;
@@ -84,6 +88,8 @@ void deleteTeam(Team **head, Team *target) {
     free(temp->name);
     free(temp);
 }
+
+//task 2 cozi si stive
 
 typedef struct Meci {
     Team *echipa1;
@@ -157,6 +163,8 @@ Team* pop(stack** top) {
     return aux;
 }
 
+
+//aduaga un punct la fiecare jucator si updateaza media echipei
 void updatePoints(Team *t) {
     t->medie_puncte += 1.0f;
     for (int i = 0; i < t->numPlayers; i++) {
@@ -164,6 +172,46 @@ void updatePoints(Team *t) {
     }
 }
 
+//Task 3 -bst
+
+typedef struct TreeNode {
+    Team *echipa;
+    struct TreeNode *left;
+    struct TreeNode *right;
+} TreeNode;
+
+//inserarea echipelor in arbore
+TreeNode* insertBST(TreeNode* node, Team* key) {
+    if (node == NULL) {
+        TreeNode* newNode = (TreeNode*)malloc(sizeof(TreeNode));
+        newNode->echipa = key;
+        newNode->left = newNode->right = NULL;
+        return newNode;
+    }
+    if (key->medie_puncte < node->echipa->medie_puncte) {
+        node->left = insertBST(node->left, key);
+    } else if (key->medie_puncte > node->echipa->medie_puncte) {
+        node->right = insertBST(node->right, key);
+    } else {
+        if (strcmp(key->name, node->echipa->name) > 0) {
+            node->right = insertBST(node->right, key);
+        } else {
+            node->left = insertBST(node->left, key);
+        }
+    }
+    return node;
+}
+
+void printBSTDescending(TreeNode* root, FILE* fout) {
+    if (root != NULL) {
+        //parcurgere in inordine pt afisare.
+        printBSTDescending(root->right, fout);
+        fprintf(fout, "%-34s-  %.2f\n", root->echipa->name, root->echipa->medie_puncte);
+        printBSTDescending(root->left, fout);
+    }
+}
+
+//main
 int main(int argc, char* argv[]) {
     if(argc < 4) return 1;
     FILE *fc=fopen(argv[1],"r");
@@ -184,6 +232,7 @@ int main(int argc, char* argv[]) {
         char buffernume[256];
         fscanf(file," %[^\n]",buffernume);
         int len = strlen(buffernume);
+        //stergem caracterele invizibile
         while(len > 0 && (buffernume[len-1] == '\r' || buffernume[len-1] == ' ' || buffernume[len-1] == '\t' || buffernume[len-1] == '\n')) {
             buffernume[len-1] = '\0';
             len--;
@@ -211,6 +260,7 @@ int main(int argc, char* argv[]) {
         addAtBeginning(&head,echipa_curenta);
     }
     int putere_2=cea_mai_apropiata_put_2(numar_echipe);
+    //eliminam echipe pana la cea mai apropiata putere a lui 2
     while(numar_echipe!=putere_2)
     {
         Team *aux=echipa_de_sters(head);
@@ -269,17 +319,21 @@ int main(int argc, char* argv[]) {
                 tempS=tempS->next;
             }
             numar_echipe/=2;
+            //extragere pt task 3 a celor 8 echipe
             if (numar_echipe == 8) 
             {
                 stack *tempTop = winners;
                 while (tempTop != NULL) {
                     Team *copie = (Team*)malloc(sizeof(Team));
                     *copie = *(tempTop->echipa);
+                    copie->name = (char*)malloc((strlen(tempTop->echipa->name) + 1) * sizeof(char));
+                    strcpy(copie->name, tempTop->echipa->name);
                     copie->next = top8;
                     top8 = copie;
                     tempTop = tempTop->next;
                 }
             }
+            //mutam castigatorii din stiva in coada inapoi
             while(!isEmptyStack(winners))
             {
                 Team *echipa1=pop(&winners);
@@ -287,6 +341,7 @@ int main(int argc, char* argv[]) {
                 if(echipa1!=NULL && echipa2!=NULL)
                     enQueue(q,echipa1,echipa2);
             }
+            //eliberam din memorie echipele care au pierdut
             while(!isEmptyStack(losers))
             {
                 Team *loserTeam = pop(&losers);
@@ -303,6 +358,18 @@ int main(int argc, char* argv[]) {
             runda++;
         }
         free(q);
+    }
+    if(cerinte[2]==1)
+    {
+        fprintf(fout,"\nTOP 8 TEAMS:\n");
+        TreeNode *rootBST = NULL;
+        Team *curentTop = top8;
+        while(curentTop != NULL)
+        {
+            rootBST = insertBST(rootBST, curentTop);
+            curentTop = curentTop->next;
+        }
+        printBSTDescending(rootBST, fout);
     }
     fclose(file);
     fclose(fout);
